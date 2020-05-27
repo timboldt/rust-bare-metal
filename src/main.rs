@@ -1,20 +1,33 @@
-#![no_std]
+//! Sends "Hello, world!" through the ITM port 0
+//!
+//! ITM is much faster than semihosting. Like 4 orders of magnitude or so.
+//!
+//! **NOTE** Cortex-M0 chips don't support ITM.
+//!
+//! You'll have to connect the microcontroller's SWO pin to the SWD interface. Note that some
+//! development boards don't provide this option.
+//!
+//! You'll need [`itmdump`] to receive the message on the host plus you'll need to uncomment two
+//! `monitor` commands in the `.gdbinit` file.
+//!
+//! [`itmdump`]: https://docs.rs/itm/0.2.1/itm/
+//!
+//! ---
+
 #![no_main]
+#![no_std]
 
-// pick a panicking behavior
-extern crate panic_halt; // you can put a breakpoint on `rust_begin_unwind` to catch panics
-// extern crate panic_abort; // requires nightly
-// extern crate panic_itm; // logs messages over ITM; requires ITM support
-// extern crate panic_semihosting; // logs messages to the host stderr; requires a debugger
+extern crate panic_halt;
 
-use cortex_m::asm;
+use cortex_m::{iprintln, Peripherals};
 use cortex_m_rt::entry;
 
 #[entry]
 fn main() -> ! {
-    asm::nop(); // To not have main optimize to abort in release mode, remove when you add code
+    let mut p = Peripherals::take().unwrap();
+    let stim = &mut p.ITM.stim[0];
 
-    loop {
-        // your code goes here
-    }
+    iprintln!(stim, "Hello, world!");
+
+    loop {}
 }
