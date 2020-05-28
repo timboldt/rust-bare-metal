@@ -19,22 +19,26 @@
 
 extern crate panic_halt;
 
-use cortex_m::iprintln;
+use cortex_m::{asm, iprintln};
 use cortex_m_rt::entry;
 use stm32f3;
 
 #[entry]
 fn main() -> ! {
     let mut cp = cortex_m::Peripherals::take().unwrap();
-    let p = stm32f3::stm32f303::Peripherals::take().unwrap();
+    let dp = stm32f3::stm32f303::Peripherals::take().unwrap();
     let stim = &mut cp.ITM.stim[0];
-    let rcc = p.RCC;
-    let gpioe = p.GPIOE;
+    let rcc = dp.RCC;
+    let gpioe = dp.GPIOE;
     rcc.ahbenr.modify(|_, w| w.iopeen().set_bit());
     gpioe.moder.write(|w| w.moder11().output());
-    gpioe.bsrr.write(|w| w.bs11().set());
 
-    iprintln!(stim, "Hello, world!");
+    iprintln!(stim, "Init complete");
 
-    loop {}
+    loop {
+        gpioe.bsrr.write(|w| w.bs11().set_bit());
+        for _ in 0..10000 { asm::nop(); }    
+        gpioe.bsrr.write(|w| w.br11().set_bit());
+        for _ in 0..10000 { asm::nop(); }    
+    }
 }
