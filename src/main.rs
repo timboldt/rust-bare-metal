@@ -29,16 +29,33 @@ fn main() -> ! {
     let dp = stm32f3::stm32f303::Peripherals::take().unwrap();
     let stim = &mut cp.ITM.stim[0];
     let rcc = dp.RCC;
+    rcc.ahbenr.modify(|_, w| {
+        w.iopaen()
+            .set_bit() // Enable GPIOA.
+            .iopeen()
+            .set_bit() // Enable GPIOE.
+    });
+
+    let gpioa = dp.GPIOA;
+    gpioa.moder.write(
+        |w| w.moder0().input(), // PA0 is user button 1.
+    );
+
     let gpioe = dp.GPIOE;
-    rcc.ahbenr.modify(|_, w| w.iopeen().set_bit());
-    gpioe.moder.write(|w| w.moder11().output());
+    gpioe.moder.write(
+        |w| w.moder11().output(), // PE11 is the green LED.
+    );
 
     iprintln!(stim, "Init complete");
 
     loop {
-        gpioe.bsrr.write(|w| w.bs11().set_bit());
-        for _ in 0..10000 { asm::nop(); }    
-        gpioe.bsrr.write(|w| w.br11().set_bit());
-        for _ in 0..10000 { asm::nop(); }    
+        if gpioa.idr.read().idr0().is_high() {
+            gpioe.bsrr.write(|w| w.bs11().set_bit());
+        } else {
+            gpioe.bsrr.write(|w| w.br11().set_bit());
+        }
+        // for _ in 0..10000 {
+        //     asm::nop();
+        // }
     }
 }
